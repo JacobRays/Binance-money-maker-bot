@@ -11,22 +11,27 @@ import os
 import logging
 import threading
 
+# Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s", filename="trading_log.txt")
 logger = logging.getLogger()
 
-API_KEY ="NVeBs2NVZ9JwHX2CF9KDgL2dSLmM08WLghm9c7tXXb5cxrRQFsK0m0lKxFKj8lGE"
-API_SECRET = "8a30DhaVRMCZodf41JLfIBB7tfYEgmBXva9eyQwPCGTr1hzZ3UaZZpwNkWB91a1g"
-client = Client(API_KEY, API_SECRET, requests_params={"proxies": {"http": "http://45.151.162.198:6600", "https": "http://45.151.162.198:6600"}})
+# Binance API credentials with proxy
+API_KEY = os.environ.get("API_KEY", "NVeBs2NVZ9JwHX2CF9KDgL2dSLmM08WLghm9c7tXXb5cxrRQFsK0m0lKxFKj8lGE")
+API_SECRET = os.environ.get("API_SECRET", "8a30DhaVRMCZodf41JLfIBB7tfYEgmBXva9eyQwPCGTr1hzZ3UaZZpwNkWB91a1g")
+PROXY_USERNAME = os.environ.get("PROXY_USERNAME", "bnshfbty")
+PROXY_PASSWORD = os.environ.get("PROXY_PASSWORD", "546filwfebpk")
+proxy_url = f"http://{PROXY_USERNAME}:{PROXY_PASSWORD}@45.151.162.198:6600"
+client = Client(API_KEY, API_SECRET, requests_params={"proxies": {"http": proxy_url, "https": proxy_url}})
 
-YOUR_PASSWORD = "Premium01!"
+# Other settings
+YOUR_PASSWORD = os.environ.get("YOUR_PASSWORD", "Premium01!")
 hashed_password = hashlib.sha256(YOUR_PASSWORD.encode()).hexdigest()
-
-WITHDRAW_ADDRESS = "0xb98ee32218e0aDdD822Daaeb0BAdd509CCfCac49"
-PAYPAL_ADDRESS = "premiumrays01@gmail.com"
-
+WITHDRAW_ADDRESS = os.environ.get("WITHDRAW_ADDRESS", "0xb98ee32218e0aDdD822Daaeb0BAdd509CCfCac49")
+PAYPAL_ADDRESS = os.environ.get("PAYPAL_ADDRESS", "premiumrays01@gmail.com")
 DEFAULT_PAIR = "DOGEUSDT"
 TRADE_FILE = "trades.json"
 
+# Flask app
 app = Flask(__name__)
 
 def verify_password(password):
@@ -34,9 +39,13 @@ def verify_password(password):
     return input_hash == hashed_password
 
 def get_trading_pairs():
-    exchange_info = client.get_exchange_info()
-    pairs = {symbol['symbol']: float(symbol['filters'][2]['minQty']) for symbol in exchange_info['symbols'] if symbol['status'] == "TRADING"}
-    return pairs
+    try:
+        exchange_info = client.get_exchange_info()
+        pairs = {symbol['symbol']: float(symbol['filters'][2]['minQty']) for symbol in exchange_info['symbols'] if symbol['status'] == "TRADING"}
+        return pairs
+    except Exception as e:
+        logger.error(f"Error fetching trading pairs: {e}")
+        return {}
 
 def load_trades():
     if os.path.exists(TRADE_FILE):
@@ -132,7 +141,7 @@ def run_reward_errands():
 def calculate_atr_and_trend(symbol, period=14):
     try:
         klines = client.get_historical_klines(symbol, Client.KLINE_INTERVAL_1HOUR, f"{period + 20} hours ago UTC")
-        df = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'close_time', 'quote_volume', 'trades', 'tb_base', 'tb_quote', 'ignore'])
+        df = pd.DataFrame(klines, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume Spot trading', 'close_time', 'quote_volume', 'trades', 'tb_base', 'tb_quote', 'ignore'])
         df['high'] = df['high'].astype(float)
         df['low'] = df['low'].astype(float)
         df['close'] = df['close'].astype(float)
@@ -161,8 +170,6 @@ def trade_with_atr(symbol, min_qty, trades):
     base_asset = symbol[:-4] if symbol.endswith("USDT") else symbol[:-3]
     quote_asset = "USDT" if symbol.endswith("USDT") else "BNB"
     quote_balance = float(client.get_asset_balance(asset=quote_asset)['free'])
-    base_balance = float(client.get_asset_balance(asset=base_asset)['free'])
-    
     trade_value = quote_balance * 0.1
     qty = max(min_qty, trade_value / current_price)
     min_trade_value = qty * current_price
@@ -227,7 +234,7 @@ def monitor_position(symbol, trades):
 
 def trading_loop():
     pairs = get_trading_pairs()
-    selected_pairs = [DEFAULT_PAIR]  # Default to DOGEUSDT; customize here if needed
+    selected_pairs = [DEFAULT_PAIR]
     trades = load_trades()
     
     while True:
@@ -250,7 +257,18 @@ def trading_loop():
         
         usdt_balance = float(client.get_asset_balance(asset="USDT")['free'])
         logger.info(f"Current USDT balance: {usdt_balance:.6f}")
-       
+        if usdt_balance >= 1.5:
+            logger.info("Funds sufficient - auto-trading with ATR!")
+            for symbol in selected_pairs:
+                trade_with_atr(symbol, pairs[symbol], trades)
+        
+        balances = [f"{b['asset']}: {b['free']}" for b in client.get_account()['balances'] if float(b['free']) > 0]
+        logger.info("Your Balances:")
+        for balance in balances:
+            logger.info(f"- {balance}")
+        
+        logger.info("Waiting 1 minute for next cycle...")
+        time.sleep(60)
 
 @app.route('/ping')
 def ping():
