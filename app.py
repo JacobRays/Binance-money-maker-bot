@@ -16,7 +16,7 @@ logger = logging.getLogger()
 
 API_KEY ="NVeBs2NVZ9JwHX2CF9KDgL2dSLmM08WLghm9c7tXXb5cxrRQFsK0m0lKxFKj8lGE"
 API_SECRET = "8a30DhaVRMCZodf41JLfIBB7tfYEgmBXva9eyQwPCGTr1hzZ3UaZZpwNkWB91a1g"
-client = Client(API_KEY, API_SECRET)
+client = client = Client(API_KEY, API_SECRET, requests_params={"proxies": {"http": "http://161.123.152.115", "https": "http://161.123.152.115"}})
 
 YOUR_PASSWORD = "Premium01!"
 hashed_password = hashlib.sha256(YOUR_PASSWORD.encode()).hexdigest()
