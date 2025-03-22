@@ -13,17 +13,23 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 API_KEY = os.getenv('NVeBs2NVZ9JwHX2CF9KDgL2dSLmM08WLghm9c7tXXb5cxrRQFsK0m0lKxFKj8lGE')
 API_SECRET = os.getenv('8a30DhaVRMCZodf41JLfIBB7tfYEgmBXva9eyQwPCGTr1hzZ3UaZZpwNkWB91a1g')
 
+# Specific IP address to bind to
+BIND_IP = '13.246.209.48'
+
 # Initialize Binance client
 client = Client(API_KEY, API_SECRET)
 
 # Function to fetch and log the bot's public IP
 def log_public_ip():
     try:
-        response = requests.get('https://api.ipify.org?format=json')
-        response.raise_for_status()
-        public_ip = response.json()['ip']
-        logging.info(f'Bot Public IP: {public_ip}')
-        return public_ip
+        # Bind to the specific IP address
+        with requests.Session() as session:
+            session.bind = (BIND_IP, 0)  # Bind to the specified IP
+            response = session.get('https://api.ipify.org?format=json')
+            response.raise_for_status()
+            public_ip = response.json()['ip']
+            logging.info(f'Bot Public IP: {public_ip}')
+            return public_ip
     except Exception as e:
         logging.error(f'Error fetching public IP: {str(e)}')
         return None
@@ -31,10 +37,13 @@ def log_public_ip():
 # Function to fetch Funding Wallet balance
 def get_funding_balance():
     try:
-        # Fetch USDT balance in Funding Wallet
-        balance = client.get_asset_balance(asset='USDT')
-        usdt_balance = float(balance['free'])
-        return usdt_balance
+        # Bind to the specific IP address
+        with requests.Session() as session:
+            session.bind = (BIND_IP, 0)  # Bind to the specified IP
+            # Fetch USDT balance in Funding Wallet
+            balance = client.get_asset_balance(asset='USDT')
+            usdt_balance = float(balance['free'])
+            return usdt_balance
     except BinanceAPIException as e:
         logging.error(f'Error fetching Funding Wallet: {str(e)}')
         return 0.0
