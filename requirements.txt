@@ -1,6 +1,4 @@
 python-binance
 requests
-python-binance
-requests
 beautifulsoup4
 pandas
