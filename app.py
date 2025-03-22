@@ -6,24 +6,20 @@ import time
 
 # Proxy settings
 proxy = {
-    'http': 'http://51.91.237.124:8080',  # France proxy
-    'https': 'http://51.91.237.124:8080',
+    'http': 'http://203.74.125.18:8888',  # Taiwan proxy
+    'https': 'http://203.74.125.18:8888',
 }
 
-# Set up the Binance client with proxy and disable SSL verification
+# Set up the Binance client with proxy
 os.environ['HTTP_PROXY'] = proxy['http']
 os.environ['HTTPS_PROXY'] = proxy['https']
 client = Client('NVEbS2NVZ9JWHX2CF9KDgL2dSLmM08WLghm9c7txXB5cxrrQFsKOm0LKXFkj81GE', '8a30DhaVRMCZodf41JLfIBB7tfYEgmBXva9eyQwPCGTr1hzZ3UaZZpwNkWB91a1g')
-client.session.verify = False  # Disable SSL verification (temporary)
-
-# Disable SSL verification for requests (temporary)
-requests.packages.urllib3.disable_warnings()  # Suppress warnings
 
 # Function to log the bot's public IP
 def log_public_ip():
     try:
         # Log IP with proxy (should show the proxy IP)
-        response = requests.get('https://api.ipify.org?format=json', proxies=proxy, verify=False)
+        response = requests.get('https://api.ipify.org?format=json', proxies=proxy)
         response.raise_for_status()
         proxy_ip = response.json()['ip']
         timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
