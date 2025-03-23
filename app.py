@@ -67,11 +67,11 @@ def check_stop_loss(buy_price):
         return True
     return False
 
-# Main trading loop
+# Main trading loop for Binance Money Maker Bot
 def trade():
     # Buy at the lowest price
     buy_order, buy_price = buy_at_lowest_price(TRADING_PAIR)
-    print(f"Bought at {buy_price}")
+    print(f"Binance Money Maker Bot bought at {buy_price}")
 
     # Continuously monitor for Take Profit or Stop Loss
     while True:
